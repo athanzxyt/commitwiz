@@ -6,18 +6,18 @@ import path from 'path';
 import inquirer from 'inquirer';
 import { execa } from 'execa';
 
-const COMMIT_TYPES = [
-  'build',
-  'chore',
-  'ci',
-  'docs',
-  'feat',
-  'fix',
-  'perf',
-  'refactor',
-  'revert',
-  'style',
-  'test'
+const COMMIT_TYPE_CHOICES = [
+  { value: 'feat', name: 'feat: A new feature' },
+  { value: 'fix', name: 'fix: A bug fix' },
+  { value: 'docs', name: 'docs: Documentation only' },
+  { value: 'style', name: 'style: Formatting (no code change)' },
+  { value: 'refactor', name: 'refactor: Code change without behavior change' },
+  { value: 'perf', name: 'perf: Performance improvement' },
+  { value: 'test', name: 'test: Add or update tests' },
+  { value: 'build', name: 'build: Build system or dependencies' },
+  { value: 'ci', name: 'ci: CI configuration or scripts' },
+  { value: 'chore', name: 'chore: Maintenance / tooling' },
+  { value: 'revert', name: 'revert: Revert a previous commit' }
 ];
 
 function parseArgs() {
@@ -125,7 +125,7 @@ async function promptCommitDetails() {
       type: 'list',
       name: 'type',
       message: 'Select commit type',
-      choices: COMMIT_TYPES
+      choices: COMMIT_TYPE_CHOICES
     },
     {
       type: 'input',
