@@ -1,58 +1,60 @@
 #!/usr/bin/env node
 
-import fs from 'fs/promises';
-import os from 'os';
-import path from 'path';
-import inquirer from 'inquirer';
-import { execa } from 'execa';
+import fs from "fs/promises";
+import os from "os";
+import path from "path";
+import inquirer from "inquirer";
+import { execa } from "execa";
 
 const COMMIT_TYPE_CHOICES = [
-  { value: 'feat', name: 'feat: A new feature' },
-  { value: 'fix', name: 'fix: A bug fix' },
-  { value: 'docs', name: 'docs: Documentation only' },
-  { value: 'style', name: 'style: Formatting (no code change)' },
-  { value: 'refactor', name: 'refactor: Code change without behavior change' },
-  { value: 'perf', name: 'perf: Performance improvement' },
-  { value: 'test', name: 'test: Add or update tests' },
-  { value: 'build', name: 'build: Build system or dependencies' },
-  { value: 'ci', name: 'ci: CI configuration or scripts' },
-  { value: 'chore', name: 'chore: Maintenance / tooling' },
-  { value: 'revert', name: 'revert: Revert a previous commit' }
+  { value: "feat", name: "feat: A new feature" },
+  { value: "fix", name: "fix: A bug fix" },
+  { value: "docs", name: "docs: Documentation only" },
+  { value: "style", name: "style: Formatting (no code change)" },
+  { value: "refactor", name: "refactor: Code change without behavior change" },
+  { value: "perf", name: "perf: Performance improvement" },
+  { value: "test", name: "test: Add or update tests" },
+  { value: "build", name: "build: Build system or dependencies" },
+  { value: "ci", name: "ci: CI configuration or scripts" },
+  { value: "chore", name: "chore: Maintenance / tooling" },
+  { value: "revert", name: "revert: Revert a previous commit" },
 ];
 
 function parseArgs() {
   const args = process.argv.slice(2);
   return {
-    pick: args.includes('--pick') || args.includes('-p'),
-    dryRun: args.includes('--dry-run')
+    pick: args.includes("--pick") || args.includes("-p"),
+    dryRun: args.includes("--dry-run"),
   };
 }
 
 async function ensureGitRepo() {
   try {
-    await execa('git', ['rev-parse', '--is-inside-work-tree'], { stdio: 'pipe' });
+    await execa("git", ["rev-parse", "--is-inside-work-tree"], {
+      stdio: "pipe",
+    });
   } catch (err) {
-    console.error('Error: not inside a git repository.');
+    console.error("Error: not inside a git repository.");
     process.exitCode = 1;
     throw err;
   }
 }
 
 async function getStatusLines() {
-  const { stdout } = await execa('git', ['status', '--porcelain']);
-  return stdout.split('\n').filter(Boolean);
+  const { stdout } = await execa("git", ["status", "--porcelain"]);
+  return stdout.split("\n").filter(Boolean);
 }
 
 async function getStagedFiles() {
-  const { stdout } = await execa('git', ['diff', '--cached', '--name-only']);
-  return stdout.split('\n').filter(Boolean);
+  const { stdout } = await execa("git", ["diff", "--cached", "--name-only"]);
+  return stdout.split("\n").filter(Boolean);
 }
 
 function parsePorcelain(lines) {
   return lines.map((line) => {
     const status = line.slice(0, 3);
     const rawPath = line.slice(3).trim();
-    const renameParts = rawPath.includes('->') ? rawPath.split('->') : null;
+    const renameParts = rawPath.includes("->") ? rawPath.split("->") : null;
     const pathToStage = renameParts ? renameParts[1].trim() : rawPath;
     const label = `${status.trim()} ${rawPath}`.trim();
     return { label, path: pathToStage };
@@ -60,19 +62,19 @@ function parsePorcelain(lines) {
 }
 
 async function stageAllChanges() {
-  await execa('git', ['add', '-A'], { stdio: 'inherit' });
+  await execa("git", ["add", "-A"], { stdio: "inherit" });
 }
 
 async function stagePaths(paths) {
   for (const filePath of paths) {
-    await execa('git', ['add', '--', filePath], { stdio: 'inherit' });
+    await execa("git", ["add", "--", filePath], { stdio: "inherit" });
   }
 }
 
 function parseCommaList(input) {
   if (!input) return [];
   return input
-    .split(',')
+    .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
 }
@@ -84,10 +86,10 @@ function buildCommitMessage({
   body,
   breakingDetails,
   refs,
-  closes
+  closes,
 }) {
-  const headerScope = scope ? `(${scope})` : '';
-  const breakingMark = breakingDetails ? '!' : '';
+  const headerScope = scope ? `(${scope})` : "";
+  const breakingMark = breakingDetails ? "!" : "";
   const header = `${type}${headerScope}${breakingMark}: ${description}`;
 
   const sections = [header];
@@ -100,111 +102,116 @@ function buildCommitMessage({
     footers.push(`BREAKING CHANGE: ${breakingDetails.trim()}`);
   }
   if (refs.length) {
-    footers.push(`Refs: ${refs.join(', ')}`);
+    footers.push(`Refs: ${refs.join(", ")}`);
   }
   if (closes.length) {
     closes.forEach((item) => footers.push(`Closes ${item}`));
   }
   if (footers.length) {
-    sections.push(footers.join('\n'));
+    sections.push(footers.join("\n"));
   }
 
-  return sections.join('\n\n');
+  return sections.join("\n\n");
 }
 
 function showPreview(message) {
-  console.log('\n--- Commit message preview ---');
+  console.log("\n--- Commit message preview ---");
   console.log(message);
-  console.log('------------------------------');
-  console.log('');
+  console.log("------------------------------");
+  console.log("");
 }
 
 async function promptCommitDetails() {
   const answers = await inquirer.prompt([
     {
-      type: 'list',
-      name: 'type',
-      message: 'Select commit type',
-      choices: COMMIT_TYPE_CHOICES
+      type: "list",
+      name: "type",
+      message: "Select commit type",
+      choices: COMMIT_TYPE_CHOICES,
     },
     {
-      type: 'input',
-      name: 'scope',
-      message: 'Optional scope (leave empty for none)'
+      type: "input",
+      name: "scope",
+      message: "Optional scope (leave empty for none)",
     },
     {
-      type: 'input',
-      name: 'description',
-      message: 'Short description',
+      type: "input",
+      name: "description",
+      message: "Short description",
       validate: (value) => {
         if (!value || !value.trim()) {
-          return 'Description is required.';
+          return "Description is required.";
         }
         if (value.length > 72) {
-          return 'Recommended to stay within 72 characters.';
+          return "Recommended to stay within 72 characters.";
         }
-        if (value.endsWith('.')) {
-          return 'Please omit trailing period.';
+        if (value.endsWith(".")) {
+          return "Please omit trailing period.";
         }
         return true;
-      }
+      },
     },
     {
-      type: 'confirm',
-      name: 'breaking',
-      message: 'Is this a breaking change?',
-      default: false
+      type: "confirm",
+      name: "breaking",
+      message: "Is this a breaking change?",
+      default: false,
     },
     {
-      type: 'input',
-      name: 'breakingDetails',
-      message: 'Describe the breaking change',
+      type: "input",
+      name: "breakingDetails",
+      message: "Describe the breaking change",
       when: (answers) => answers.breaking,
-      validate: (value) => (value && value.trim() ? true : 'Details are required for breaking changes.')
+      validate: (value) =>
+        value && value.trim()
+          ? true
+          : "Details are required for breaking changes.",
     },
     {
-      type: 'confirm',
-      name: 'wantsBody',
-      message: 'Add a detailed body? (opens editor)',
-      default: false
+      type: "confirm",
+      name: "wantsBody",
+      message: "Add a detailed body? (opens editor)",
+      default: false,
     },
     {
-      type: 'editor',
-      name: 'body',
-      message: 'Body (save & close to keep, empty to skip)',
+      type: "editor",
+      name: "body",
+      message: "Body (save & close to keep, empty to skip)",
       waitUserInput: true,
-      when: (answers) => answers.wantsBody
+      when: (answers) => answers.wantsBody,
     },
     {
-      type: 'input',
-      name: 'refs',
-      message: 'Optional issue refs (comma-separated, e.g. #123, #456)'
+      type: "input",
+      name: "refs",
+      message: "Optional issue refs (comma-separated, e.g. #123, #456)",
     },
     {
-      type: 'input',
-      name: 'closes',
-      message: 'Optional closes (comma-separated, e.g. #123)'
-    }
+      type: "input",
+      name: "closes",
+      message: "Optional closes (comma-separated, e.g. #123)",
+    },
   ]);
 
   const refs = parseCommaList(answers.refs);
-  const closes = parseCommaList(answers.closes).map((entry) => (entry.startsWith('#') ? entry : `#${entry}`));
+  const closes = parseCommaList(answers.closes).map((entry) =>
+    entry.startsWith("#") ? entry : `#${entry}`
+  );
 
   return {
     type: answers.type,
-    scope: answers.scope.trim() || '',
+    scope: answers.scope.trim() || "",
     description: answers.description.trim(),
-    body: answers.body ? answers.body.trim() : '',
-    breakingDetails: answers.breaking ? answers.breakingDetails : '',
+    body: answers.body ? answers.body.trim() : "",
+    breakingDetails: answers.breaking ? answers.breakingDetails : "",
     refs,
-    closes
+    closes,
   };
 }
 
 async function writeTempMessage(content) {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'commitwizard-'));
-  const filePath = path.join(dir, 'COMMIT_MESSAGE.txt');
-  await fs.writeFile(filePath, content, 'utf8');
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "commitwizard-"));
+  const filePath = path.join(dir, "COMMIT_MESSAGE.txt");
+  await fs.writeFile(filePath, content, "utf8");
   return { dir, filePath };
 }
 
@@ -214,19 +221,19 @@ async function cleanupTemp(dir) {
 
 async function runCommit(message, { dryRun }) {
   const { dir, filePath } = await writeTempMessage(message);
-  const args = ['commit', '-F', filePath];
+  const args = ["commit", "-F", filePath];
 
   if (dryRun) {
-    console.log('Dry run - would execute:');
-    console.log(`git ${args.join(' ')}`);
-    console.log('\nCommit message:\n');
+    console.log("Dry run - would execute:");
+    console.log(`git ${args.join(" ")}`);
+    console.log("\nCommit message:\n");
     console.log(message);
     await cleanupTemp(dir);
     return;
   }
 
   try {
-    await execa('git', args, { stdio: 'inherit' });
+    await execa("git", args, { stdio: "inherit" });
   } finally {
     await cleanupTemp(dir);
   }
@@ -238,21 +245,21 @@ async function promptStageAllIfNeeded() {
 
   const lines = await getStatusLines();
   if (!lines.length) {
-    console.log('No changes to commit.');
+    console.log("No changes to commit.");
     process.exit(0);
   }
 
   const { stageAll } = await inquirer.prompt([
     {
-      type: 'confirm',
-      name: 'stageAll',
-      message: 'No staged changes found. Stage all changes (git add -A)?',
-      default: true
-    }
+      type: "confirm",
+      name: "stageAll",
+      message: "No staged changes found. Stage all changes (git add -A)?",
+      default: true,
+    },
   ]);
 
   if (!stageAll) {
-    console.log('Nothing staged. Aborting.');
+    console.log("Nothing staged. Aborting.");
     process.exit(0);
   }
 
@@ -262,24 +269,24 @@ async function promptStageAllIfNeeded() {
 async function promptPickerAndStage() {
   const lines = await getStatusLines();
   if (!lines.length) {
-    console.log('No changes to pick from.');
+    console.log("No changes to pick from.");
     process.exit(0);
   }
 
   const choices = parsePorcelain(lines).map((item) => ({
     name: item.label,
-    value: item.path
+    value: item.path,
   }));
 
   const { selected } = await inquirer.prompt([
     {
-      type: 'checkbox',
-      name: 'selected',
-      message: 'Select files to stage (Space/Enter to toggle)',
+      type: "checkbox",
+      name: "selected",
+      message: "Select files to stage (Space/Enter to toggle)",
       choices,
       loop: false,
-      pageSize: 15
-    }
+      pageSize: 15,
+    },
   ]);
 
   if (selected.length) {
@@ -289,15 +296,15 @@ async function promptPickerAndStage() {
     if (!staged.length) {
       const { continueWithout } = await inquirer.prompt([
         {
-          type: 'confirm',
-          name: 'continueWithout',
-          message: 'No files selected and nothing staged. Continue anyway?',
-          default: false
-        }
+          type: "confirm",
+          name: "continueWithout",
+          message: "No files selected and nothing staged. Continue anyway?",
+          default: false,
+        },
       ]);
 
       if (!continueWithout) {
-        console.log('Aborting.');
+        console.log("Aborting.");
         process.exit(0);
       }
     }
@@ -307,7 +314,7 @@ async function promptPickerAndStage() {
 async function ensureStagedChanges() {
   const staged = await getStagedFiles();
   if (!staged.length) {
-    console.log('No staged changes detected. Stage files and try again.');
+    console.log("No staged changes detected. Stage files and try again.");
     process.exit(0);
   }
 }
