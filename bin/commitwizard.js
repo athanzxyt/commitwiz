@@ -112,13 +112,10 @@ function buildCommitMessage({
   return sections.join('\n\n');
 }
 
-function showPreview(message, flags) {
+function showPreview(message) {
   console.log('\n--- Commit message preview ---');
   console.log(message);
   console.log('------------------------------');
-  if (flags.length) {
-    console.log(`Flags: ${flags.join(' ')}`);
-  }
   console.log('');
 }
 
@@ -187,30 +184,6 @@ async function promptCommitDetails() {
       type: 'input',
       name: 'closes',
       message: 'Optional closes (comma-separated, e.g. #123)'
-    },
-    {
-      type: 'confirm',
-      name: 'amend',
-      message: 'Use --amend?',
-      default: false
-    },
-    {
-      type: 'confirm',
-      name: 'signoff',
-      message: 'Use --signoff?',
-      default: false
-    },
-    {
-      type: 'confirm',
-      name: 'noVerify',
-      message: 'Use --no-verify?',
-      default: false
-    },
-    {
-      type: 'confirm',
-      name: 'confirmCommit',
-      message: 'Run git commit now?',
-      default: true
     }
   ]);
 
@@ -224,13 +197,7 @@ async function promptCommitDetails() {
     body: answers.body ? answers.body.trim() : '',
     breakingDetails: answers.breaking ? answers.breakingDetails : '',
     refs,
-    closes,
-    flags: [
-      answers.amend ? '--amend' : null,
-      answers.signoff ? '--signoff' : null,
-      answers.noVerify ? '--no-verify' : null
-    ].filter(Boolean),
-    confirmCommit: answers.confirmCommit
+    closes
   };
 }
 
@@ -245,9 +212,9 @@ async function cleanupTemp(dir) {
   await fs.rm(dir, { recursive: true, force: true });
 }
 
-async function runCommit(message, flags, { dryRun }) {
+async function runCommit(message, { dryRun }) {
   const { dir, filePath } = await writeTempMessage(message);
-  const args = ['commit', '-F', filePath, ...flags];
+  const args = ['commit', '-F', filePath];
 
   if (dryRun) {
     console.log('Dry run - would execute:');
@@ -362,14 +329,9 @@ async function main() {
     const commitDetails = await promptCommitDetails();
     const message = buildCommitMessage(commitDetails);
 
-    showPreview(message, commitDetails.flags);
+    showPreview(message);
 
-    if (!commitDetails.confirmCommit) {
-      console.log('Commit cancelled.');
-      return;
-    }
-
-    await runCommit(message, commitDetails.flags, { dryRun: options.dryRun });
+    await runCommit(message, { dryRun: options.dryRun });
   } catch (err) {
     // execa already prints stderr; add friendly message
     if (!process.exitCode) {
