@@ -21,3 +21,7 @@ Run inside a git repository with pending changes. The wizard:
 - Uses `inquirer` for prompts and `execa` for git commands
 - Builds Conventional Commit headers, optional scope, optional body (you can skip the editor), breaking change footer, refs, and closes footers
 - Executes `git commit -F <tempfile>` automatically after the preview (no extra flags)
+
+## Author
+
+- Athan Zhang (<dev@athan.sh>)

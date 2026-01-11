@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Interactive git commit wizard with staging picker",
   "type": "module",
+  "author": "Athan Zhang <dev@athan.sh>",
   "bin": {
     "commitwizard": "./bin/commitwizard.js",
     "git-wiz": "./bin/commitwizard.js"
